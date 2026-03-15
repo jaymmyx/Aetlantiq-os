@@ -7,7 +7,15 @@ const api = {
     ipcRenderer.invoke('add-product', product),
 
   getProducts: (params: { limit: number; offset: number; search?: string }) =>
-    ipcRenderer.invoke('get-products', params)
+    ipcRenderer.invoke('get-products', params),
+
+  updateProduct: (product: { id: number; sku: string; name: string; description: string }) =>
+    ipcRenderer.invoke('update-product', product),
+
+  deleteProduct: (id: number) =>
+    ipcRenderer.invoke('delete-product', id),
+
+  exportPdf: () => ipcRenderer.invoke('export-pdf')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

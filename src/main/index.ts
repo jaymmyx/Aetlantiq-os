@@ -1,8 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { initDB, addProduct, getProducts } from './database';
+import { initDB, addProduct, getProducts, updateProduct, deleteProduct } from './database';
 
 function createWindow(): void {
   // Create the browser window.
@@ -76,6 +76,58 @@ app.whenReady().then(() => {
       return { success: false, error: error.message };
     }
   });
+
+  // IPC Listener: Update Product
+ipcMain.handle('update-product', (_, product) => {
+  try {
+    const result = updateProduct(product.id, product.sku, product.name, product.description);
+    return { success: result.changes > 0 };
+  } catch (error: any) {
+    return { success: false, error: error.message }; // Will catch duplicate SKUs on edit
+  }
+});
+
+// IPC Listener: Delete Product
+ipcMain.handle('delete-product', (_, id) => {
+  try {
+    const result = deleteProduct(id);
+    return { success: result.changes > 0 };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Inside src/main/index.ts
+ipcMain.handle('export-pdf', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return { success: false };
+
+  try {
+    // Let the user choose where to save the invoice
+    const { filePath } = await dialog.showSaveDialog(win, {
+      title: 'Save Invoice',
+      defaultPath: 'Invoice.pdf',
+      filters: [{ name: 'PDFs', extensions: ['pdf'] }]
+    });
+
+    if (!filePath) return { success: false, canceled: true };
+
+    // Print the window to PDF using A4 specs
+    const pdfBuffer = await win.webContents.printToPDF({
+      printBackground: true,
+      pageSize: 'A4',
+      margins: { marginType: 'none' } // We handle margins via Tailwind padding (20mm)
+    });
+
+    // Write the file to the OS
+    const fs = require('fs');
+    fs.writeFileSync(filePath, pdfBuffer);
+    
+    return { success: true, filePath };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
 
   createWindow()
 

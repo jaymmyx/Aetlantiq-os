@@ -73,6 +73,51 @@ export function useProducts() {
         }
     };
 
+    const updateProduct = async (id: number, sku: string, name: string, description: string) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await window.api.updateProduct({ id, sku, name, description });
+            if (response.success) {
+                await fetchProducts(); // Refresh the grid
+                return true;
+            } else {
+                setError(response.error || 'Failed to update product.');
+                return false;
+            }
+        } catch (err) {
+            setError('An error occurred while updating.');
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const deleteProduct = async (id: number) => {
+        // Basic safety check
+        if (!window.confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+            return false;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await window.api.deleteProduct(id);
+            if (response.success) {
+                await fetchProducts(); // Refresh the grid
+                return true;
+            } else {
+                setError(response.error || 'Failed to delete product.');
+                return false;
+            }
+        } catch (err) {
+            setError('An error occurred while deleting.');
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Helper properties for pagination UI
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
@@ -91,6 +136,8 @@ export function useProducts() {
         setPage,
         setSearchTerm,
         addProduct,
+        updateProduct,
+        deleteProduct,
         refresh: fetchProducts
     };
 }
